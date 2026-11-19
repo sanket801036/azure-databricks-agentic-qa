@@ -39,6 +39,10 @@ VECTOR_SEARCH_INDEX = f"{UC_CATALOG}.{UC_SCHEMA}.chunks_index"
 # addressed by its three-part name.
 AI_GATEWAY_MODEL_SERVICE = f"{UC_CATALOG}.{UC_SCHEMA}.gpt-oss"
 
+# College mode (src/policypilot/college): the College ERP instance whose REST API supplies the
+# student's attendance and takes questions handed to teachers. Defaults to the public demo.
+ERP_BASE_URL = os.environ.get("ERP_BASE_URL", "https://college-erp-rlyy.onrender.com")
+
 
 @dataclass(frozen=True)
 class Settings:
