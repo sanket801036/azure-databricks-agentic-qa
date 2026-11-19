@@ -5,6 +5,13 @@ demonstrating agentic AI patterns on Databricks + Azure (Q&A, AI reviewer, gener
 PolicyPilot answers questions about SEC 10-K filings and cites the filing every claim
 came from, refusing rather than guessing when it can't ground an answer.
 
+> **Credit.** PolicyPilot was created by [yashprogrammer](https://github.com/yashprogrammer)
+> ([original repository](https://github.com/yashprogrammer/azure-databricks-agentic-qa)):
+> the 10-K agent, the Databricks + Azure deployment, the Unity Gateway setup and the eval
+> harness are their work. This fork adds **College mode** (below): the same governed Q&A
+> pattern over a college's policies, joined to the student's live record in
+> [College ERP](https://github.com/sanket801036/College-ERP-master).
+
 ## Status
 
 **Milestone 1 done: local prototype.** Real SEC EDGAR filings, a local Chroma vector
@@ -108,6 +115,39 @@ uv run pytest
 uv run ruff check .
 ```
 
+## College mode
+
+The same pattern - plan, retrieve, answer, verify, refuse rather than guess - pointed at a
+college instead of SEC filings, with two things the 10-K agent does not need:
+
+- **The student's own record as a tool.** When a question is about the student ("can I
+  sit the DBMS exam?") rather than the rules ("what is the attendance rule?"), the plan
+  step routes through College ERP's REST API for their per-course attendance. The ERP
+  already works out the classes needed to get back to 75%, so those numbers go into the
+  context as their own numbered source, and an answer has to cite both the rule and the
+  record it applied it to. The model is never asked to do the arithmetic.
+- **A way out of a refusal.** A refused answer offers to send the question to the
+  student's teachers through the ERP's `/api/v1/doubts/` endpoint, together with what
+  the assistant already said, so a teacher can correct it instead of repeating it. It
+  lands in the same queue as questions from the ERP's own assistant page.
+
+The verify step is also stricter here: every `[n]` must point at an item that was in the
+context, so a citation to a source that was never given counts as no citation.
+
+```bash
+uv run python -m policypilot.college.ingest      # index data/college_policies/*.md
+uv run streamlit run src/policypilot/app/college_app.py
+```
+
+Sign in from the sidebar with an ERP student account - the public demo's is
+`teststud` / `testpass123`, test data only, also printed on the ERP's sign-in page.
+`ERP_BASE_URL` points at a different ERP instance. The policies in
+`data/college_policies/` are a sample handbook written to match the rules the ERP
+enforces, not a real institution's.
+
+Local only so far: on Databricks the policies would get their own UC table and
+Delta-Sync index exactly as the filings do.
+
 ## Next steps
 
 Done: Azure Databricks workspace (Central India, Premium, Serverless), Unity Catalog
@@ -140,8 +180,10 @@ src/policypilot/
 ├── ingestion/               # SEC EDGAR fetch -> chunk -> embed -> store
 ├── retrieval/                # VectorStore protocol + local/Databricks implementations
 ├── agent/                    # LLM client protocol, tools, LangGraph agent
+├── college/                  # College mode: policy loader, ERP client, agent, ingest
 ├── eval/                     # golden dataset + Databricks Agent Evaluation harness
-└── app/                       # Streamlit chat UI (becomes the Databricks App)
+└── app/                       # Streamlit chat UIs: 10-K (Databricks App) and college
+data/college_policies/         # Sample college handbook for College mode
 notebooks/seed_chunks_table.py # Self-contained: fetch+chunk+embed+write into UC, run in-workspace
 scripts/setup_unity_catalog.py # UC provisioning script (dev catalog was created by hand instead)
 resources/, databricks.yml     # Databricks Asset Bundle (deploy config)
