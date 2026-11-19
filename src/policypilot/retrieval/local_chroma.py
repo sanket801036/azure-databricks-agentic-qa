@@ -14,10 +14,10 @@ _COLLECTION_NAME = "policypilot_filings"
 
 
 class LocalChromaVectorStore:
-    def __init__(self, persist_dir: str | None = None):
+    def __init__(self, persist_dir: str | None = None, collection: str = _COLLECTION_NAME):
         persist_dir = persist_dir or str(CHROMA_DIR)
         self._client = chromadb.PersistentClient(path=persist_dir)
-        self._collection = self._client.get_or_create_collection(_COLLECTION_NAME)
+        self._collection = self._client.get_or_create_collection(collection)
         self._embedder = SentenceTransformer(EMBEDDING_MODEL)
 
     def upsert(self, ids: list[str], texts: list[str], metadatas: list[dict]) -> None:
